@@ -361,36 +361,34 @@ function Panel({ perfil, onExit }: { perfil: Perfil; onExit: () => void }) {
       .then(({ data }) => setEnvios(data ?? []));
   }, []);
 
-  useEffect(() => {
-    const canal = supabase
-      .channel("avisos-vivo")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "avisos" },
-        (payload) => {
-          const fila = payload.new as Aviso;
-          if (fila.user_id !== perfil.id && fila.autor_id !== perfil.id && perfil.rol !== "Gerencia") return;
-          setAvisos((prev) => [fila, ...prev.filter((a) => a.id !== fila.id)]);
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "avisos" },
-        (payload) => {
-          const fila = payload.new as Aviso;
-          setAvisos((prev) => prev.map((a) => (a.id === fila.id ? fila : a)));
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "avisos" },
-        ({ old }) => setAvisos((prev) => prev.filter((a) => a.id !== old.id)),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(canal);
-    };
-  }, [perfil.id, perfil.rol]);
+useEffect(() => {
+  const canal = supabase
+    .channel("avisos-vivo")
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "avisos" },
+      (payload) => {
+        const fila = payload.new as Aviso;
+        if (fila.user_id !== perfil.id && perfil.rol !== "Gerencia") return;
+        setAvisos((prev) => [fila, ...prev.filter((a) => a.id !== fila.id)]);
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "avisos" },
+      (payload) => {
+        const fila = payload.new as Aviso;
+        setAvisos((prev) =>
+          prev.map((a) => (a.id === fila.id ? { ...a, ...fila } : a)),
+        );
+      },
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(canal);
+  };
+}, [perfil.id, perfil.rol]);
 
   async function salir() {
     await supabase.auth.signOut();
