@@ -102,7 +102,7 @@ export default function App() {
     });
   }, []);
 
-  if (!listo) return <p className="p-8 text-sm text-muted">Abriendo sesión…</p>;
+  if (!listo) return <p className="grid min-h-dvh place-items-center p-8 text-sm text-muted">Abriendo sesión…</p>;
   if (!perfil) return <Login onEnter={setPerfil} />;
   return <Panel perfil={perfil} onExit={() => setPerfil(null)} />;
 }
