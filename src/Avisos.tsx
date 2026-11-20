@@ -95,24 +95,24 @@ export function Avisos({
       return;
     }
     const { error: fallo } = editando
-      ? await supabase
-          .from("avisos")
-          .update({ texto: mensaje, user_id: para })
-          .eq("id", editando)
-      : await supabase
-          .from("avisos")
-          .insert({ user_id: para, autor_id: yo, texto: mensaje });
-    if (fallo) {
-      setError(mensajeError(fallo));
-      return;
-    }
-    await supabase
-      .from("auditoria")
-      .insert({
-        actor_id: yo,
-        accion: editando ? "Editar aviso" : "Crear aviso",
-        recurso: nombre(para),
-      });
+  ? await supabase
+      .from("avisos")
+      .update({ texto: mensaje, user_id: para, leida: false })
+      .eq("id", editando)
+  : await supabase
+      .from("avisos")
+      .insert({ user_id: para, autor_id: yo, texto: mensaje });
+
+if (fallo) {
+  setError(mensajeError(fallo));
+  return;
+}
+
+await supabase.channel("avisos-equipo").send({
+  type: "broadcast",
+  event: "cambio",
+  payload: {},
+});
     setTexto("");
     setAbierto(false);
     onSaved();

@@ -397,19 +397,20 @@ function Panel({ perfil, onExit }: { perfil: Perfil; onExit: () => void }) {
   }
 
   useEffect(() => {
-    const canal = supabase
-      .channel("avisos-vivo-2")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "avisos" },
-        () => cargarAvisos(),
-      )
-      .subscribe();
+  const canal = supabase
+    .channel("avisos-equipo")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "avisos" },
+      () => cargarAvisos(),
+    )
+    .on("broadcast", { event: "cambio" }, () => cargarAvisos())
+    .subscribe();
 
-    return () => {
-      supabase.removeChannel(canal);
-    };
-  }, [perfil.id, perfil.rol]);
+  return () => {
+    supabase.removeChannel(canal);
+  };
+}, [perfil.id, perfil.rol]);
 
   async function salir() {
     await supabase.auth.signOut();
