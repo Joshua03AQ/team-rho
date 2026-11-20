@@ -361,27 +361,21 @@ function Panel({ perfil, onExit }: { perfil: Perfil; onExit: () => void }) {
       .then(({ data }) => setEnvios(data ?? []));
   }, []);
 
+function cargarAvisos() {
+  supabase
+    .from("avisos")
+    .select("*")
+    .order("fecha", { ascending: false })
+    .then(({ data }) => setAvisos((data ?? []) as Aviso[]));
+}
+
 useEffect(() => {
   const canal = supabase
-    .channel("avisos-vivo")
+    .channel("avisos-vivo-2")
     .on(
       "postgres_changes",
-      { event: "INSERT", schema: "public", table: "avisos" },
-      (payload) => {
-        const fila = payload.new as Aviso;
-        if (fila.user_id !== perfil.id && perfil.rol !== "Gerencia") return;
-        setAvisos((prev) => [fila, ...prev.filter((a) => a.id !== fila.id)]);
-      },
-    )
-    .on(
-      "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "avisos" },
-      (payload) => {
-        const fila = payload.new as Aviso;
-        setAvisos((prev) =>
-          prev.map((a) => (a.id === fila.id ? { ...a, ...fila } : a)),
-        );
-      },
+      { event: "*", schema: "public", table: "avisos" },
+      () => cargarAvisos(),
     )
     .subscribe();
 
@@ -796,13 +790,7 @@ useEffect(() => {
                 yo={perfil.id}
                 canWrite={puede}
                 onNote={setNota}
-                onSaved={() => {
-                  supabase
-                    .from("avisos")
-                    .select("*")
-                    .order("fecha", { ascending: false })
-                    .then(({ data }) => setAvisos((data ?? []) as Aviso[]));
-                }}
+                onSaved={cargarAvisos}
               />
             ) : page === "usuarios" && gerencia ? (
               <Usuarios

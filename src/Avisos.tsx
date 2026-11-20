@@ -57,7 +57,11 @@ export function Avisos({
     personas.find((p) => p.id === id)?.nombre ?? "Usuario";
   const [busca, setBusca] = useState("");
   const q = busca.trim().toLowerCase();
-  const vistos = hechos.filter((h) => (nombre(h.actor_id) + " " + h.accion + " " + h.recurso).toLowerCase().includes(q));
+  const vistos = hechos.filter((h) =>
+    (nombre(h.actor_id) + " " + h.accion + " " + h.recurso)
+      .toLowerCase()
+      .includes(q),
+  );
 
   function cargarHechos() {
     supabase
@@ -90,17 +94,25 @@ export function Avisos({
       setError("Escribe el mensaje del aviso.");
       return;
     }
-    const tabla = supabase.from("avisos");
     const { error: fallo } = editando
-      ? await tabla.update({ texto: mensaje, user_id: para}).eq("id", editando).select("id").single()
-      : await tabla.insert({ user_id: para, texto: mensaje });
+      ? await supabase
+          .from("avisos")
+          .update({ texto: mensaje, user_id: para })
+          .eq("id", editando)
+      : await supabase
+          .from("avisos")
+          .insert({ user_id: para, autor_id: yo, texto: mensaje });
     if (fallo) {
       setError(mensajeError(fallo));
       return;
     }
     await supabase
       .from("auditoria")
-      .insert({ actor_id: yo, accion: editando ? "Editar aviso" : "Crear aviso", recurso: nombre(para) });
+      .insert({
+        actor_id: yo,
+        accion: editando ? "Editar aviso" : "Crear aviso",
+        recurso: nombre(para),
+      });
     setTexto("");
     setAbierto(false);
     onSaved();
@@ -108,23 +120,26 @@ export function Avisos({
     cargarHechos();
   }
   async function eliminar(id: string) {
-  if (!window.confirm(
-    "¿Eliminar este aviso? La acción quedará registrada en auditoría."
-  )) return;
+    if (
+      !window.confirm(
+        "¿Eliminar este aviso? La acción quedará registrada en auditoría.",
+      )
+    )
+      return;
 
-  const { error: fallo } = await supabase.rpc("eliminar_aviso", {
-    p_aviso_id: id,
-  });
+    const { error: fallo } = await supabase.rpc("eliminar_aviso", {
+      p_aviso_id: id,
+    });
 
-  if (fallo) {
-    onNote(mensajeError(fallo));
-    return;
+    if (fallo) {
+      onNote(mensajeError(fallo));
+      return;
+    }
+
+    onSaved();
+    cargarHechos();
+    onNote("Aviso eliminado. ");
   }
-
-  onSaved();
-  cargarHechos();
-  onNote("Aviso eliminado. ");
-}
   async function leer(id: string) {
     const { error: fallo } = await supabase
       .from("avisos")
@@ -133,12 +148,19 @@ export function Avisos({
     if (!fallo) onSaved();
   }
 
-  const mios = rows.filter((a) => a.user_id === yo || a.autor_id === yo || gerencia);
+  const mios = rows.filter(
+    (a) => a.user_id === yo || a.autor_id === yo || gerencia,
+  );
 
   return (
     <>
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <div><h1 className="font-display text-4xl">Avisos</h1><p className="mt-1 text-sm text-muted">Mensajes y recordatorios para el equipo.</p></div>
+        <div>
+          <h1 className="font-display text-4xl">Avisos</h1>
+          <p className="mt-1 text-sm text-muted">
+            Mensajes y recordatorios para el equipo.
+          </p>
+        </div>
         {canWrite ? (
           <button
             onClick={() => {
@@ -164,47 +186,52 @@ export function Avisos({
             className="control-row flex flex-wrap items-center justify-between gap-3 px-4 py-3"
           >
             <div>
-              <p className={`whitespace-pre-wrap break-words ${a.leida ? "text-muted" : "font-medium"}`}>
+              <p
+                className={`whitespace-pre-wrap break-words ${a.leida ? "text-muted" : "font-medium"}`}
+              >
                 {a.texto}
               </p>
               <p className="text-xs text-muted">
-                {a.user_id !== yo
-                  ? `Para ${nombre(a.user_id)} · `
-                  : ""}
+                {a.user_id !== yo ? `Para ${nombre(a.user_id)} · ` : ""}
                 {fecha(a.fecha)}
               </p>
             </div>
             <div className="flex items-center gap-3">
-            {a.autor_id === yo && (
-              <button className="min-h-10 text-sm font-medium text-panel" onClick={() => {
-                setEditando(a.id);
-                setTexto(a.texto);
-                setPara(a.user_id);
-                setError("");
-                setAbierto(true);
-              }}>Editar</button>
-            )}
-            {a.autor_id === yo && (
-              <button
-                type="button"
-                className="min-h-10 text-sm font-medium text-bad"
-                onClick={() => eliminar(a.id)}
-              >
-                Eliminar
-              </button>
-            )}
-            {!a.leida && a.user_id === yo ? (
-              <button
-                onClick={() => leer(a.id)}
-                className="min-h-10 text-sm font-medium text-panel"
-              >
-                Marcar leído
-              </button>
-            ) : a.leida ? (
-              <span className="estado-pill is-ok">Leído</span>
-            ) : (
-              <span className="estado-pill is-ev">Pendiente</span>
-            )}
+              {a.autor_id === yo && (
+                <button
+                  className="min-h-10 text-sm font-medium text-panel"
+                  onClick={() => {
+                    setEditando(a.id);
+                    setTexto(a.texto);
+                    setPara(a.user_id);
+                    setError("");
+                    setAbierto(true);
+                  }}
+                >
+                  Editar
+                </button>
+              )}
+              {a.autor_id === yo && (
+                <button
+                  type="button"
+                  className="min-h-10 text-sm font-medium text-bad"
+                  onClick={() => eliminar(a.id)}
+                >
+                  Eliminar
+                </button>
+              )}
+              {!a.leida && a.user_id === yo ? (
+                <button
+                  onClick={() => leer(a.id)}
+                  className="min-h-10 text-sm font-medium text-panel"
+                >
+                  Marcar leído
+                </button>
+              ) : a.leida ? (
+                <span className="estado-pill is-ok">Leído</span>
+              ) : (
+                <span className="estado-pill is-ev">Pendiente</span>
+              )}
             </div>
           </li>
         ))}
@@ -212,34 +239,44 @@ export function Avisos({
       {gerencia ? (
         <section className="overflow-clip rounded-xl bg-card ring-1 ring-line">
           <h2 className="px-4 pt-4 font-display text-2xl">Auditoría</h2>
-          <div className="mx-4 mt-3"><input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar persona, acción o expediente" className="field" aria-label="Buscar en auditoría" /></div>
-          <div className="overflow-x-auto"><table className="mt-2 w-full text-left text-sm">
-            <thead className="text-xs text-muted uppercase">
-              <tr>
-                <th className="px-4 py-2">Cuándo</th>
-                <th className="px-4 py-2">Quién</th>
-                <th className="px-4 py-2">Qué</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vistos.map((h) => (
-                <tr key={h.id} className="control-row border-t border-line">
-                  <td className="px-4 py-2">{fecha(h.fecha)}</td>
-                  <td className="px-4 py-2">{nombre(h.actor_id)}</td>
-                  <td className="px-4 py-2">
-                    {h.accion} · {h.recurso}
-                  </td>
-                </tr>
-              ))}
-              {vistos.length === 0 ? (
+          <div className="mx-4 mt-3">
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar persona, acción o expediente"
+              className="field"
+              aria-label="Buscar en auditoría"
+            />
+          </div>
+          <div className="overflow-x-auto">
+            <table className="mt-2 w-full text-left text-sm">
+              <thead className="text-xs text-muted uppercase">
                 <tr>
-                  <td className="px-4 py-6 text-muted" colSpan={3}>
-                    Todavía no hay movimientos.
-                  </td>
+                  <th className="px-4 py-2">Cuándo</th>
+                  <th className="px-4 py-2">Quién</th>
+                  <th className="px-4 py-2">Qué</th>
                 </tr>
-              ) : null}
-            </tbody>
-          </table></div>
+              </thead>
+              <tbody>
+                {vistos.map((h) => (
+                  <tr key={h.id} className="control-row border-t border-line">
+                    <td className="px-4 py-2">{fecha(h.fecha)}</td>
+                    <td className="px-4 py-2">{nombre(h.actor_id)}</td>
+                    <td className="px-4 py-2">
+                      {h.accion} · {h.recurso}
+                    </td>
+                  </tr>
+                ))}
+                {vistos.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-6 text-muted" colSpan={3}>
+                      Todavía no hay movimientos.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
         </section>
       ) : null}
       {abierto ? (
@@ -250,8 +287,15 @@ export function Avisos({
             onSubmit={guardar}
           >
             <div className="flex items-center justify-between gap-3">
-              <h2 id="titulo-formulario" className="font-display text-2xl">{editando ? "Editar aviso" : "Nuevo aviso"}</h2>
-              <button type="button" aria-label="Cerrar formulario" className="grid size-10 place-items-center rounded-md text-muted hover:bg-paper" onClick={() => setAbierto(false)}>
+              <h2 id="titulo-formulario" className="font-display text-2xl">
+                {editando ? "Editar aviso" : "Nuevo aviso"}
+              </h2>
+              <button
+                type="button"
+                aria-label="Cerrar formulario"
+                className="grid size-10 place-items-center rounded-md text-muted hover:bg-paper"
+                onClick={() => setAbierto(false)}
+              >
                 <X className="size-5" />
               </button>
             </div>
