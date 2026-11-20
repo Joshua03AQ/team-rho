@@ -96,13 +96,23 @@ export default function App() {
         setListo(true);
         return;
       }
-      const { data: fila } = await supabase.from("perfiles").select("id, nombre, rol").eq("id", user.id).single();
-      if (fila) setPerfil({ ...fila, rol: fila.rol as Rol, email: user.email ?? "" });
+      const { data: fila } = await supabase
+        .from("perfiles")
+        .select("id, nombre, rol")
+        .eq("id", user.id)
+        .single();
+      if (fila)
+        setPerfil({ ...fila, rol: fila.rol as Rol, email: user.email ?? "" });
       setListo(true);
     });
   }, []);
 
-  if (!listo) return <p className="grid min-h-dvh place-items-center p-8 text-sm text-muted">Abriendo sesión…</p>;
+  if (!listo)
+    return (
+      <p className="grid min-h-dvh place-items-center p-8 text-sm text-muted">
+        Abriendo sesión…
+      </p>
+    );
   if (!perfil) return <Login onEnter={setPerfil} />;
   return <Panel perfil={perfil} onExit={() => setPerfil(null)} />;
 }
@@ -113,7 +123,9 @@ function Login({ onEnter }: { onEnter: (p: Perfil) => void }) {
   const [show, setShow] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [missing, setMissing] = useState({ email: "", password: "" });
-  const [alert, setAlert] = useState<"vacio" | "clave" | "conexion" | null>(null);
+  const [alert, setAlert] = useState<"vacio" | "clave" | "conexion" | null>(
+    null,
+  );
   const correoMal =
     email.trim().length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const emailBad = Boolean(missing.email) || alert === "clave";
@@ -136,28 +148,28 @@ function Login({ onEnter }: { onEnter: (p: Perfil) => void }) {
     }
     setEnviando(true);
     try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: correo.toLowerCase(),
-      password,
-    });
-    if (error || !data.user) {
-      setAlert("clave");
-      return;
-    }
-    const { data: perfil } = await supabase
-      .from("perfiles")
-      .select("id, nombre, rol")
-      .eq("id", data.user.id)
-      .single();
-    if (!perfil) {
-      setAlert("clave");
-      return;
-    }
-    onEnter({
-      ...perfil,
-      rol: perfil.rol as Rol,
-      email: data.user.email ?? correo,
-    });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: correo.toLowerCase(),
+        password,
+      });
+      if (error || !data.user) {
+        setAlert("clave");
+        return;
+      }
+      const { data: perfil } = await supabase
+        .from("perfiles")
+        .select("id, nombre, rol")
+        .eq("id", data.user.id)
+        .single();
+      if (!perfil) {
+        setAlert("clave");
+        return;
+      }
+      onEnter({
+        ...perfil,
+        rol: perfil.rol as Rol,
+        email: data.user.email ?? correo,
+      });
     } catch {
       setAlert("conexion");
     } finally {
@@ -194,7 +206,10 @@ function Login({ onEnter }: { onEnter: (p: Perfil) => void }) {
                 {emailBad ? <span className="field-flag">Revisa</span> : null}
               </span>
               <input
-                id="correo" type="email" inputMode="email" aria-invalid={emailBad}
+                id="correo"
+                type="email"
+                inputMode="email"
+                aria-invalid={emailBad}
                 className={`field mt-1.5 ${emailBad ? "is-bad" : ""}`}
                 value={email}
                 onChange={(e) => {
@@ -218,7 +233,8 @@ function Login({ onEnter }: { onEnter: (p: Perfil) => void }) {
               <span className="secret mt-1.5">
                 <input
                   id="clave"
-                  type={show ? "text" : "password"} aria-invalid={claveBad}
+                  type={show ? "text" : "password"}
+                  aria-invalid={claveBad}
                   className={`${show ? "field" : "field is-secret"} ${claveBad ? "is-bad" : ""}`}
                   value={password}
                   onChange={(e) => {
@@ -254,18 +270,29 @@ function Login({ onEnter }: { onEnter: (p: Perfil) => void }) {
                 </span>
                 <span>
                   <strong>
-                    {alert === "conexion" ? "No se pudo conectar" : alert === "clave" ? "Revisa tus datos" : "Revisa los campos"}
+                    {alert === "conexion"
+                      ? "No se pudo conectar"
+                      : alert === "clave"
+                        ? "Revisa tus datos"
+                        : "Revisa los campos"}
                   </strong>
                   <span>
-                    {alert === "conexion" ? "Revisa tu conexión e inténtalo de nuevo." : alert === "clave"
-                      ? "El correo o la contraseña son incorrectos."
-                      : "Completa lo marcado para poder entrar."}
+                    {alert === "conexion"
+                      ? "Revisa tu conexión e inténtalo de nuevo."
+                      : alert === "clave"
+                        ? "El correo o la contraseña son incorrectos."
+                        : "Completa lo marcado para poder entrar."}
                   </span>
                 </span>
               </div>
             ) : null}
-            <button disabled={enviando} aria-busy={enviando} className="mt-5 flex min-h-11 items-center justify-center gap-2 rounded-md bg-panel font-semibold text-card">
-              {enviando ? "Entrando…" : "Entrar"} <ArrowRight className="size-4" />
+            <button
+              disabled={enviando}
+              aria-busy={enviando}
+              className="mt-5 flex min-h-11 items-center justify-center gap-2 rounded-md bg-panel font-semibold text-card"
+            >
+              {enviando ? "Entrando…" : "Entrar"}{" "}
+              <ArrowRight className="size-4" />
             </button>
           </div>
         </div>
@@ -361,28 +388,28 @@ function Panel({ perfil, onExit }: { perfil: Perfil; onExit: () => void }) {
       .then(({ data }) => setEnvios(data ?? []));
   }, []);
 
-function cargarAvisos() {
-  supabase
-    .from("avisos")
-    .select("*")
-    .order("fecha", { ascending: false })
-    .then(({ data }) => setAvisos((data ?? []) as Aviso[]));
-}
+  function cargarAvisos() {
+    supabase
+      .from("avisos")
+      .select("*")
+      .order("fecha", { ascending: false })
+      .then(({ data }) => setAvisos((data ?? []) as Aviso[]));
+  }
 
-useEffect(() => {
-  const canal = supabase
-    .channel("avisos-vivo-2")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "avisos" },
-      () => cargarAvisos(),
-    )
-    .subscribe();
+  useEffect(() => {
+    const canal = supabase
+      .channel("avisos-vivo-2")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "avisos" },
+        () => cargarAvisos(),
+      )
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(canal);
-  };
-}, [perfil.id, perfil.rol]);
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [perfil.id, perfil.rol]);
 
   async function salir() {
     await supabase.auth.signOut();
@@ -411,7 +438,8 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <aside id="menu-principal"
+      <aside
+        id="menu-principal"
         className={`binder md:visible ${menu ? "visible" : "invisible"} fixed inset-y-0 left-0 z-40 flex w-64 flex-col transition-[width,transform] duration-200 ${rail ? "is-rail md:w-[4.75rem]" : ""} ${menu ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
         <div className="brand">
@@ -528,7 +556,11 @@ useEffect(() => {
             )}
           </Grupo>
         </nav>
-        <button aria-label="Cerrar sesión" onClick={salir} className="nav-item mx-3 mb-3 w-auto">
+        <button
+          aria-label="Cerrar sesión"
+          onClick={salir}
+          className="nav-item mx-3 mb-3 w-auto"
+        >
           <LogOut className="size-4" />{" "}
           <span className="nav-label">Cerrar sesión</span>
         </button>
@@ -548,7 +580,9 @@ useEffect(() => {
             <button
               className="grid size-11 shrink-0 place-items-center rounded-md text-panel md:hidden"
               onClick={() => setMenu(true)}
-              aria-label="Abrir menú" aria-controls="menu-principal" aria-expanded={menu}
+              aria-label="Abrir menú"
+              aria-controls="menu-principal"
+              aria-expanded={menu}
             >
               <Menu className="size-5" />
             </button>
@@ -712,7 +746,11 @@ useEffect(() => {
                   ))}
                 </div>
                 <div className="expediente-list overflow-hidden rounded-xl bg-card ring-1 ring-line">
-                  {visibles.length === 0 && <p className="px-4 py-6 text-sm text-muted">No hay expedientes que coincidan con esta vista.</p>}
+                  {visibles.length === 0 && (
+                    <p className="px-4 py-6 text-sm text-muted">
+                      No hay expedientes que coincidan con esta vista.
+                    </p>
+                  )}
                   {visibles.map((e) => {
                     const idx = RAIL.indexOf(e.estado);
                     return (
@@ -828,41 +866,45 @@ useEffect(() => {
                 onClick={(ev) => ev.stopPropagation()}
                 onSubmit={async (ev) => {
                   ev.preventDefault();
-                  if (!nuevo.codigo.trim() || !nuevo.nombre.trim() || !nuevo.ubicacion.trim()) {
-                    setFallo("Completa el código, el nombre y la ubicación del expediente.");
+                  if (
+                    !nuevo.codigo.trim() ||
+                    !nuevo.nombre.trim() ||
+                    !nuevo.ubicacion.trim()
+                  ) {
+                    setFallo(
+                      "Completa el código, el nombre y la ubicación del expediente.",
+                    );
                     return;
                   }
-                  const { error } = await supabase
-                    .from("expedientes")
-                    .insert({
-                      codigo: nuevo.codigo.trim(),
-                      nombre: nuevo.nombre.trim(),
-                      cliente_id: nuevo.cliente_id,
-                      anio: Number(nuevo.anio),
-                      tipo: nuevo.tipo,
-                      ambito: nuevo.ambito,
-                      ubicacion: nuevo.ubicacion.trim(),
-                      estado: "Identificada",
-                      responsable_id: perfil.id,
-                    });
+                  const { error } = await supabase.from("expedientes").insert({
+                    codigo: nuevo.codigo.trim(),
+                    nombre: nuevo.nombre.trim(),
+                    cliente_id: nuevo.cliente_id,
+                    anio: Number(nuevo.anio),
+                    tipo: nuevo.tipo,
+                    ambito: nuevo.ambito,
+                    ubicacion: nuevo.ubicacion.trim(),
+                    estado: "Identificada",
+                    responsable_id: perfil.id,
+                  });
                   if (error) {
                     setFallo(mensajeError(error));
                     return;
                   }
                   setCreando(false);
-                  await supabase
-                    .from("auditoria")
-                    .insert({
-                      actor_id: perfil.id,
-                      accion: "Crear expediente",
-                      recurso: nuevo.codigo.trim(),
-                    });
+                  await supabase.from("auditoria").insert({
+                    actor_id: perfil.id,
+                    accion: "Crear expediente",
+                    recurso: nuevo.codigo.trim(),
+                  });
                   setNota("Expediente creado.");
                   cargarExpedientes();
                 }}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <h2 id="titulo-formulario" className="font-display text-2xl">Nuevo expediente</h2>
+                  <h2 id="titulo-formulario" className="font-display text-2xl">
+                    Nuevo expediente
+                  </h2>
                   <button
                     type="button"
                     aria-label="Cerrar formulario"
@@ -965,7 +1007,11 @@ useEffect(() => {
               </form>
             </Formulario>
           ) : null}
-          {nota ? <div className="toast" role="status">{nota}</div> : null}
+          {nota ? (
+            <div className="toast" role="status">
+              {nota}
+            </div>
+          ) : null}
         </main>
       </div>
     </div>
